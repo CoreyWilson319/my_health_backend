@@ -19,6 +19,8 @@ const noteSchema = new Schema ({
         type: String,
     },
     patient: [{ type: Schema.Types.ObjectId, ref: 'Patient' }] 
+}, {
+    timestamps: true,
 })
 
 const Note = mongoose.model('Note', noteSchema);

@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
+
 require("dotenv").config();
 
 const app = express();
@@ -12,7 +13,8 @@ const PORT = process.env.PORT || 8000;
 app.use(cors());
 app.use(express.json());
 
-const uri = process.env.ATLAS_URI;
+// Change to ATLAS_URI in production
+const uri = process.env.MONGO_URI;
 // uri comes from the MongoDB Atlas, DB is stored there
 // useNewUrlParser and useCreateIndex are here because something was depricated before as well as useUnifiedTopology
 mongoose.connect(uri, {
@@ -26,12 +28,12 @@ connection.once("open", () => {
 });
 
 const patientsRouter = require('./routes/patients')
-// const staffRouter = "/routes/staff";
-// const notesRouter = "/routes/notes";
+const staffRouter = require('./routes/staff')
+const notesRouter = require('./routes/notes')
 
 app.use("/patients", patientsRouter);
-// app.use("/staff", staffRouter);
-// app.use("/notes", notesRouter);
+app.use("/staff", staffRouter);
+app.use("/notes", notesRouter);
 
 // Starts Server
 app.listen(PORT, () => {

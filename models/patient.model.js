@@ -5,7 +5,6 @@ const Schema = mongoose.Schema;
 const patientSchema = new Schema({
     username: {
         type: String,
-        unique: true,
         minlength: 8
     },
     first_name: {
@@ -21,7 +20,9 @@ const patientSchema = new Schema({
         required: true
     },
     notes: [{ type: Schema.Types.ObjectId, ref: 'Note' }] ,
-    assigned_staff : [{ type: Schema.Types.ObjectId, ref: 'Staff' }] 
+    assigned_staff : [{ type: Schema.Types.ObjectId, ref: 'Staff' }]
+}, {
+    timestamps: true,
 })
 
 // Allow patients to be created

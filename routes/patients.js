@@ -6,9 +6,9 @@ router.get('/', (req, res) => {
 })
 
 // Returns all patients
-router.get('/patients', (req, res) => {
+router.get('/all', (req, res) => {
     Patient.find()
-    .then(patient = res.json(patient))
+    .then(patient => res.json(patient))
     .catch(err => res.status(400).json('Error ' + err));
 })
 
@@ -21,7 +21,8 @@ router.post('/add', (req, res) => {
         // fills patient information with what is in the req body
         first_name: req.body.first_name,
         last_name: req.body.last_name,
-        dob: req.body.dob
+        dob: Date.parse(req.body.dob),
+        username: "unregisteredpatient"
     })
 
     // Saves the new Patient
