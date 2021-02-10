@@ -2,6 +2,7 @@ const router = require("express").Router();
 let Staff = require("../models/staff.model");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const auth = require('../middleware/auth')
 
 router.get("/all", (req, res) => {
   Staff.find()
@@ -77,5 +78,70 @@ router.post("/register", (req, res) => {
     })
   });
 });
+
+router.post("/login", (req, res) => {
+  const { username, email, password, first_name, last_name, facility, title } = req.body;
+
+  // Simple Validation
+  if ( !email  || !password) {
+    return res.status(400).json({ msg: "Please enter all fields" });
+  }
+  // Check if user exist
+  Staff.findOne({ email: email }).then((staff) => {
+    if (!staff) return res.status(400).json({ msg: "Staff member does not exist" });
+
+
+    // Validate password
+    // this compares the user given password with the password of the staff member found in our findOne method
+    bcrypt.compare(password, staff.password)
+    // compare method returns a promise
+    // if isMatch is false the credentials entered were wrong
+    // If isMatch is true the login credentials was correct send token and user
+    .then(isMatch => {
+        if(!isMatch) return res.status(400).json({ msg: "Invalid Credentials" })
+
+        jwt.sign(
+            { id: staff.id },
+            process.env.jwt,
+            { expiresIn: 3600 },
+            (err, token) => {
+                if(err) throw err;
+                res.json({
+                    token: token,
+                    user: {
+                        id: staff.id,
+                        last_name: staff.last_name,
+                        email: staff.email,
+                        username: staff.username,
+                        facility: staff.facility,
+                        title: staff.title
+                    }
+                })
+
+            }
+        )
+    })
+  });
+});
+
+// {
+//     "first_name": "Gineara",
+//     "last_name": "Hannah",
+//    "email": "ghannah@gmail.com",
+//    "password": "testing123",
+//    "facility": "hannah solutions",
+//    "title": "Counsellor",
+//    "username": "hgineara123"
+// }
+
+// @route   GET staff/user
+// @desc    Get user data
+// @access Private
+router.get('/user', auth, (req, res) => {
+    Staff.findById(req.user.id)
+    // Disregards the password in the responding json
+        .select('-password')
+        .then(user => res.json(user));
+})
 
 module.exports = router;
