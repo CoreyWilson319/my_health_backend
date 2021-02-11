@@ -1,127 +1,18 @@
 const router = require("express").Router();
 let Staff = require("../models/staff.model");
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const auth = require('../middleware/auth')
+let Patient = require("../models/patient.model");
+let Medication = require("../models/medication.model");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const auth = require("../middleware/auth");
 
-router.get("/all", (req, res) => {
+// @route   GET staff/all
+// @desc    Get all staff members
+// @access  Private
+router.get("/all", auth, (req, res) => {
   Staff.find()
     .then((staff = res.json(staff)))
     .catch((err) => res.status(400).json("Error " + err));
-});
-
-router.post("/register", (req, res) => {
-  const { username, email, password, first_name, last_name, facility, title } = req.body;
-
-  // Simple Validation
-  if (!last_name || !email || !username || !password) {
-    return res.status(400).json({ msg: "Please enter all fields" });
-  }
-  // Check if user exist
-  Staff.findOne({ email: email }).then((staff) => {
-    if (staff) return res.status(400).json({ msg: "Staff Member already exist" });
-
-    const newStaff = new Staff({
-        first_name,
-        last_name,
-        email,
-        // We don't want to store a raw password so we need to hash it
-        password,
-        username,
-        facility,
-        title
-    })
-
-    // Create salt & hash
-    // first parameter of genSalt method is how many times we will salt the password
-    // 10 is the default
-    bcrypt.genSalt(10, (err, salt)=> {
-        // hash will take in the plain text password first
-        // then salt
-        // callback function that takes in an err and the hash
-        bcrypt.hash(newStaff.password, salt, (err, hash) => {
-            // If error stop everything and throw that error
-            if(err) throw err;
-            newStaff.password = hash;
-            newStaff.save()
-                .then(user => {
-
-                    // Sign the token, first parameter is going to be the payload we want to add
-                        // Can be anything
-                    // When we send a token these things will be sent in the token
-                    // Can add more
-                    // next paramater will be the secret
-                    // Last parameter is optional which is the expiresIn by seconds 3600 is an hour
-                    // Lastly we need to send a callback with an err and the token
-                    jwt.sign(
-                        { id: user.id },
-                        process.env.jwt,
-                        { expiresIn: 3600 },
-                        (err, token) => {
-                            if(err) throw err;
-                            res.json({
-                                token: token,
-                                user: {
-                                    id: user.id,
-                                    last_name: user.last_name,
-                                    email: user.email,
-                                    username: user.username,
-                                    facility: user.facility,
-                                    title: user.title
-                                }
-                            })
-
-                        }
-                    )
-                })
-        })
-    })
-  });
-});
-
-router.post("/login", (req, res) => {
-  const { username, email, password, first_name, last_name, facility, title } = req.body;
-
-  // Simple Validation
-  if ( !email  || !password) {
-    return res.status(400).json({ msg: "Please enter all fields" });
-  }
-  // Check if user exist
-  Staff.findOne({ email: email }).then((staff) => {
-    if (!staff) return res.status(400).json({ msg: "Staff member does not exist" });
-
-
-    // Validate password
-    // this compares the user given password with the password of the staff member found in our findOne method
-    bcrypt.compare(password, staff.password)
-    // compare method returns a promise
-    // if isMatch is false the credentials entered were wrong
-    // If isMatch is true the login credentials was correct send token and user
-    .then(isMatch => {
-        if(!isMatch) return res.status(400).json({ msg: "Invalid Credentials" })
-
-        jwt.sign(
-            { id: staff.id },
-            process.env.jwt,
-            { expiresIn: 3600 },
-            (err, token) => {
-                if(err) throw err;
-                res.json({
-                    token: token,
-                    user: {
-                        id: staff.id,
-                        last_name: staff.last_name,
-                        email: staff.email,
-                        username: staff.username,
-                        facility: staff.facility,
-                        title: staff.title
-                    }
-                })
-
-            }
-        )
-    })
-  });
 });
 
 // {
@@ -137,11 +28,63 @@ router.post("/login", (req, res) => {
 // @route   GET staff/user
 // @desc    Get user data
 // @access Private
-router.get('/user', auth, (req, res) => {
-    Staff.findById(req.user.id)
+router.get("/user", auth, (req, res) => {
+  Staff.findById(req.user.id)
     // Disregards the password in the responding json
-        .select('-password')
-        .then(user => res.json(user));
-})
+    .select("-password")
+    .then((user) => res.json(user));
+});
+
+// @route   GET staff/user
+// @desc    Get user data
+// @access Private
+// Add validation to see if staff is assigned to patient before prescribing
+router.post("/prescribe", auth, (req, res) => {
+  Patient.findOne({_id: req.body.patient_id})
+//   Find the patient with the matching id
+    .then((patient) => {
+      const newMedication = new Medication({
+        prescribed_by: req.user.id,
+        prescribed_user: patient,
+        trade_name: req.body.trade_name,
+        brand_name: req.body.brand_name,
+      });
+    //   Create a new medicine in the db
+    //   prescribed by the user currently logged in and the patient with the matching id
+
+
+      // Saves the new Medication
+      newMedication.save();
+    //   Push the newMedication
+      patient.medication.push(newMedication);
+      patient.save();
+    })
+    .then(() => res.json({ msg: "Medicine Prescribed" }))
+    .catch((err) => res.status(400).json("Error: " + err));
+});
+
+router.post("/createpatient", (req, res) => {
+  // Change this to search if this patient exist
+  // By checking last_name and DOB
+
+  // Creates a new instance of a patient
+  const newPatient = new Patient({
+    // fills patient information with what is in the req body
+    first_name: req.body.first_name,
+    last_name: req.body.last_name,
+    dob: Date.parse(req.body.dob),
+    username: "unregisteredpatient",
+  });
+
+  // Saves the new Patient
+  newPatient
+    .save()
+    // sends a json message that the patient has been added or it throws an error if something
+    // has gone wrong
+    .then(() => res.json("Patient Added!"))
+    .catch((err) => res.status(400).json("Error: " + err));
+});
+
+router.get("/patient/:patient_id")
 
 module.exports = router;

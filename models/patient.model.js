@@ -19,6 +19,7 @@ const patientSchema = new Schema({
         type: Date,
         required: true
     },
+    medication: [{ type: Schema.Types.ObjectId, ref: 'Medication' }],
     notes: [{ type: Schema.Types.ObjectId, ref: 'Note' }] ,
     assigned_staff : [{ type: Schema.Types.ObjectId, ref: 'Staff' }]
 }, {
