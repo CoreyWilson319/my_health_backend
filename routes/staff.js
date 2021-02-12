@@ -40,8 +40,8 @@ router.get("/user", auth, (req, res) => {
 // @access Private
 // Add validation to see if staff is assigned to patient before prescribing
 router.post("/prescribe", auth, (req, res) => {
-  Patient.findOne({_id: req.body.patient_id})
-//   Find the patient with the matching id
+  Patient.findOne({ _id: req.body.patient_id })
+    //   Find the patient with the matching id
     .then((patient) => {
       const newMedication = new Medication({
         prescribed_by: req.user.id,
@@ -49,13 +49,12 @@ router.post("/prescribe", auth, (req, res) => {
         trade_name: req.body.trade_name,
         brand_name: req.body.brand_name,
       });
-    //   Create a new medicine in the db
-    //   prescribed by the user currently logged in and the patient with the matching id
-
+      //   Create a new medicine in the db
+      //   prescribed by the user currently logged in and the patient with the matching id
 
       // Saves the new Medication
       newMedication.save();
-    //   Push the newMedication
+      //   Push the newMedication
       patient.medication.push(newMedication);
       patient.save();
     })
@@ -85,6 +84,10 @@ router.post("/createpatient", (req, res) => {
     .catch((err) => res.status(400).json("Error: " + err));
 });
 
-router.get("/patient/:patient_id")
+router.get("/patient/:patient_id", auth, (req, res) => {
+  Patient.findOne({ _id: req.params.patient_id })
+    .then((patient) => res.send(patient))
+    .catch((err) => res.status(400).json("Error: " + err));
+});
 
 module.exports = router;
