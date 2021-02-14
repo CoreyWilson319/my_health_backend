@@ -12,6 +12,18 @@ router.get('/all', (req, res) => {
     .catch(err => res.status(400).json('Error ' + err));
 })
 
+// Find patient that is unregistered
+router.get('/patients/:patient_id', (req, res) => {
+    Patient.find({_id: req.params.patient_id})
+    .then(patient => res.json(patient))
+    .catch(err => res.status(400).json('Error ' + err));
+})
+
+// Create patient username
+router.put('/patient/:patient_id/register', (req, res) => {
+    Patient.findOneAndUpdate() // LEAVING OFF HERE
+        .catch(err => res.status(400).json('Error ' + err));
+})
 
 // Make it so that once a patient has been added by staff allow them sign up using email, password
 
